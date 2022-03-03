@@ -1,7 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import '../firebase_options.dart';
 
 class LoginView extends StatefulWidget {
   // since homepage has the 2 input fields whose value can be changed, this makes
@@ -36,67 +34,60 @@ class _LoginViewState extends State<LoginView> {
       appBar: AppBar(
         title: const Text('Login'),
       ),
-      body: FutureBuilder(
-          future: Firebase.initializeApp(
-            options: DefaultFirebaseOptions.currentPlatform,
+      body: Column(
+        children: [
+          TextField(
+            controller: _email,
+            enableSuggestions: false,
+            autocorrect: false,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              hintText: 'Enter your email',
+            ),
           ),
-          builder: (context, snapshot) {
-            switch (snapshot.connectionState) {
-              case ConnectionState.done:
-                return Column(
-                  children: [
-                    TextField(
-                      controller: _email,
-                      enableSuggestions: false,
-                      autocorrect: false,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter your email',
-                      ),
-                    ),
-                    TextField(
-                      controller: _password,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter your password',
-                      ),
-                    ),
-                    Center(
-                      child: TextButton(
-                        onPressed: () async {
-                          final email = _email.text;
-                          final password = _password.text;
-                          try {
-                            final loggedinUser = await FirebaseAuth.instance
-                                .signInWithEmailAndPassword(
-                                    email: email, password: password);
-                            print(loggedinUser);
-                          } on FirebaseAuthException catch (err) {
-                            // use print(err.runtimeType) to find out what type of Exception Error it is
-                            // and then we catch that exact error instead of a generic catch all error
-                            // Then we can display exactly error msg that user doesn't exist
-                            print(err.code);
-                            if (err.code == 'user-not-found') {
-                              print('User not found');
-                            } else if (err.code == 'wrong-password') {
-                              print('Wrong password');
-                            } else {
-                              print('Woops something went wrong');
-                            }
-                          }
-                        },
-                        child: const Text('Login'),
-                      ),
-                    )
-                  ],
-                );
-
-              default:
-                return const Text('Loading...');
-            }
-          }),
+          TextField(
+            controller: _password,
+            autocorrect: false,
+            enableSuggestions: false,
+            obscureText: true,
+            decoration: const InputDecoration(
+              hintText: 'Enter your password',
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              final email = _email.text;
+              final password = _password.text;
+              try {
+                final loggedinUser = await FirebaseAuth.instance
+                    .signInWithEmailAndPassword(
+                        email: email, password: password);
+                print(loggedinUser);
+              } on FirebaseAuthException catch (err) {
+                // use print(err.runtimeType) to find out what type of Exception Error it is
+                // and then we catch that exact error instead of a generic catch all error
+                // Then we can display exactly error msg that user doesn't exist
+                print(err.code);
+                if (err.code == 'user-not-found') {
+                  print('User not found');
+                } else if (err.code == 'wrong-password') {
+                  print('Wrong password');
+                } else {
+                  print('Woops something went wrong');
+                }
+              }
+            },
+            child: const Text('Login'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context)
+                  .pushNamedAndRemoveUntil('/register', (route) => false);
+            },
+            child: const Text('Not register yet? Register here!'),
+          ),
+        ],
+      ),
     );
   }
 }

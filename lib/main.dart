@@ -20,8 +20,9 @@ void main() async {
       ),
       home: const Homepage(),
       routes: {
-        '/login': (context) => const LoginView(),
-        '/register': (context) => const RegisterView(),
+        '/login/': (context) => const LoginView(),
+        '/register/': (context) => const RegisterView(),
+        '/notes/': (context) => const NotesView(),
       },
     ),
   );

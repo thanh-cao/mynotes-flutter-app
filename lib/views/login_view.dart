@@ -59,10 +59,15 @@ class _LoginViewState extends State<LoginView> {
               final email = _email.text;
               final password = _password.text;
               try {
-                final loggedinUser = await FirebaseAuth.instance
-                    .signInWithEmailAndPassword(
-                        email: email, password: password);
-                print(loggedinUser);
+                await FirebaseAuth.instance.signInWithEmailAndPassword(
+                  email: email,
+                  password: password,
+                );
+
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/notes/',
+                  (route) => false,
+                );
               } on FirebaseAuthException catch (err) {
                 // use print(err.runtimeType) to find out what type of Exception Error it is
                 // and then we catch that exact error instead of a generic catch all error
@@ -81,8 +86,10 @@ class _LoginViewState extends State<LoginView> {
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context)
-                  .pushNamedAndRemoveUntil('/register', (route) => false);
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/register/',
+                (route) => false,
+              );
             },
             child: const Text('Not register yet? Register here!'),
           ),

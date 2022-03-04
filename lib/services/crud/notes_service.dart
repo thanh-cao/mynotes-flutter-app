@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:mynotes/services/crud/crud_exceptions.dart';
 import 'package:path/path.dart' show join;
@@ -18,6 +19,31 @@ class NotesService {
     }
   }
 
+  // create note stream for caching
+  List<DBNote> _notes = [];
+  final _notesStreamController = StreamController<List<DBNote>>.broadcast();
+
+  Future<void> _cacheNotes() async {
+    final allNotes = await getAllNotes();
+    // getAllNotes() returns an Iterable<DBNote> while _notes is declared as List
+    // we can either convert Iterable to List with .toList() or we can declare
+    // _notes as Iterable to match with allNotes and drop .toList()
+    _notes = allNotes.toList();
+    _notesStreamController.add(_notes);
+  }
+
+  Future<DBUser> getOrCreateUser({required String email}) async {
+    try {
+      final user = await getUser(email: email);
+      return user;
+    } on CouldNotFindUser {
+      final createdUser = await createUser(email: email);
+      return createdUser;
+    } catch (err) {
+      rethrow;
+    }
+  }
+
   Future<DBNote> getNote({required int id}) async {
     final db = _getDatabaseOrThrow();
 
@@ -28,8 +54,15 @@ class NotesService {
       whereArgs: [id],
     );
 
-    if (notes.isEmpty) throw CouldNotFindNote();
-    return DBNote.fromRow(notes.first);
+    if (notes.isEmpty) {
+      throw CouldNotFindNote();
+    } else {
+      final note = DBNote.fromRow(notes.first);
+      _notes.removeWhere((note) => note.id == id);
+      _notes.add(note);
+      _notesStreamController.add(_notes);
+      return note;
+    }
   }
 
   Future<Iterable<DBNote>> getAllNotes() async {
@@ -46,18 +79,23 @@ class NotesService {
     final dbUser = await getUser(email: owner.email);
 
     // make sure that the owner user exists in db with correct id
-    if (dbUser != owner) throw CouldNotFindUser();
+    if (dbUser != owner) return throw CouldNotFindUser();
 
     final noteId = await db.insert(noteTable, {
       userIdColumn: owner.id,
       textColumn: '',
     });
 
-    return DBNote(
+    final note = DBNote(
       id: noteId,
       userId: owner.id,
       text: '',
     );
+
+    // add the newly created note into note cache
+    _notes.add(note);
+    _notesStreamController.add(_notes);
+    return note;
   }
 
   Future<DBNote> updateNote({
@@ -71,8 +109,15 @@ class NotesService {
       textColumn: text,
     });
 
-    if (updatedCount == 0) throw CouldNotUpdateNote();
-    return await getNote(id: note.id);
+    if (updatedCount == 0) {
+      throw CouldNotUpdateNote();
+    } else {
+      final updatedNote = await getNote(id: note.id);
+      _notes.removeWhere((note) => note.id == updatedNote.id);
+      _notes.add(updatedNote);
+      _notesStreamController.add(_notes);
+      return updatedNote;
+    }
   }
 
   Future<void> deleteNote({required int noteId}) async {
@@ -83,12 +128,21 @@ class NotesService {
       whereArgs: [noteId],
     );
 
-    if (deletedCount == 0) throw CouldNotDeleteNote();
+    if (deletedCount == 0) {
+      throw CouldNotDeleteNote();
+      // remove the deleted note from cache
+    } else {
+      _notes.removeWhere((note) => note.id == noteId);
+      _notesStreamController.add(_notes);
+    }
   }
 
   Future<int> deleteAllNotes() async {
     final db = _getDatabaseOrThrow();
     final deletedCount = await db.delete(noteTable);
+    // update notes cache with empty
+    _notes = [];
+    _notesStreamController.add(_notes);
     return deletedCount;
   }
 
@@ -102,7 +156,7 @@ class NotesService {
       whereArgs: [email.toLowerCase()],
     );
 
-    if (results.isEmpty) throw CouldNotFindUser();
+    if (results.isEmpty) return throw CouldNotFindUser();
     return DBUser.fromRow(results.first);
   }
 
@@ -115,7 +169,7 @@ class NotesService {
       whereArgs: [email.toLowerCase()],
     );
 
-    if (results.isNotEmpty) throw UserAlreadyExists();
+    if (results.isNotEmpty) return throw UserAlreadyExists();
 
     final userId = await db.insert(userTable, {
       emailColumn: email.toLowerCase(),
@@ -165,6 +219,8 @@ class NotesService {
       // excute sql queries to create user and note tables
       await db.execute(createUserTable);
       await db.execute(createNoteTable);
+
+      await _cacheNotes(); // get all notes existing in db and cache it
     } on MissingPlatformDirectoryException {
       throw UnableToGetDocumentsDirectory();
     }

@@ -67,10 +67,16 @@ class _LoginViewState extends State<LoginView> {
                   password: password,
                 );
 
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  notesRoute,
-                  (route) => false,
-                );
+                final currentUser = FirebaseAuth.instance.currentUser;
+
+                if (currentUser?.emailVerified ?? false) {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    notesRoute,
+                    (route) => false,
+                  );
+                } else {
+                  Navigator.of(context).pushNamed(verifyEmailRoute);
+                }
               } on FirebaseAuthException catch (err) {
                 // use print(err.runtimeType) to find out what type of Exception Error it is
                 // and then we catch that exact error instead of a generic catch all error

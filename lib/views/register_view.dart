@@ -1,24 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:mynotes/constants/routes.dart';
+import 'package:mynotes/services/auth/auth_exceptions.dart';
+import 'package:mynotes/services/auth/auth_service.dart';
 import 'package:mynotes/utils/error_dialog.dart';
-import 'package:mynotes/views/login_view.dart';
-
-void main() async {
-  // enabling widget binding before initialize Firebase in order to bind Firebase
-  // with other widgets. This Firebase initialization is used in a Scaffold and Button widget
-  WidgetsFlutterBinding.ensureInitialized();
-
-  runApp(
-    MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const LoginView(),
-    ),
-  );
-}
 
 class RegisterView extends StatefulWidget {
   const RegisterView({Key? key}) : super(key: key);
@@ -78,46 +62,32 @@ class _RegisterViewState extends State<RegisterView> {
               final password = _password.text;
 
               try {
-                await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                await AuthService.firebase().createUser(
                   email: email,
                   password: password,
                 );
-
-                final currentUser = FirebaseAuth.instance.currentUser;
-                currentUser?.sendEmailVerification();
+                await AuthService.firebase().sendEmailVerification();
 
                 Navigator.of(context).pushNamed(verifyEmailRoute);
-              } on FirebaseAuthException catch (err) {
-                switch (err.code) {
-                  case 'invalid-email':
-                    await showErrorDialog(
-                      context,
-                      err.message.toString(),
-                    );
-                    break;
-                  case 'email-already-in-use':
-                    await showErrorDialog(
-                      context,
-                      err.message.toString(),
-                    );
-                    break;
-                  case 'weak-password':
-                    await showErrorDialog(
-                      context,
-                      err.message.toString(),
-                    );
-                    break;
-                  default:
-                    await showErrorDialog(
-                      context,
-                      err.message.toString(),
-                    );
-                    break;
-                }
-              } catch (err) {
+              } on InvalidEmailAuthException {
                 await showErrorDialog(
                   context,
-                  err.toString(),
+                  'Invalid email format',
+                );
+              } on EmailAlreadyInUseAuthException {
+                await showErrorDialog(
+                  context,
+                  'Email is already in used',
+                );
+              } on WeakPasswordAuthException {
+                await showErrorDialog(
+                  context,
+                  'Password has to be more than 6 characters',
+                );
+              } on GenericAuthExceptions {
+                await showErrorDialog(
+                  context,
+                  'Woops. Something went wrong!',
                 );
               }
             },

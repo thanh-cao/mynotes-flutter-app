@@ -9,9 +9,15 @@ class AuthUser {
   Then we use factory function to copy FirebaseAuth's User's emailVerified property
   to our own AuthUser's isEmailVerified so we not exposing the entire FirebaseAuth's User
   properties to our UI*/
+  final String? email;
   final bool isEmailVerified;
-  const AuthUser(this.isEmailVerified);
+  const AuthUser({
+    required this.isEmailVerified,
+    required this.email,
+  });
 
-  factory AuthUser.fromFirebase(FirebaseAuth.User user) =>
-      AuthUser(user.emailVerified);
+  factory AuthUser.fromFirebase(FirebaseAuth.User user) => AuthUser(
+        email: user.email,
+        isEmailVerified: user.emailVerified,
+      );
 }

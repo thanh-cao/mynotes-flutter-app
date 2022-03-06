@@ -21,12 +21,19 @@ class NotesService {
 
   // make NotesService a singleton
   static final NotesService _shared = NotesService._sharedInstance();
-  NotesService._sharedInstance();
+  NotesService._sharedInstance() {
+    _notesStreamController = StreamController<List<DBNote>>.broadcast(
+      onListen: () {
+        _notesStreamController.sink.add(_notes);
+      },
+    );
+  }
+
   factory NotesService() => _shared;
 
   // create note stream for caching
   List<DBNote> _notes = [];
-  final _notesStreamController = StreamController<List<DBNote>>.broadcast();
+  late final StreamController<List<DBNote>> _notesStreamController;
 
   Future<void> _cacheNotes() async {
     final allNotes = await getAllNotes();

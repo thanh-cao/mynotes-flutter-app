@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:mynotes/services/auth/auth_service.dart';
 import 'package:mynotes/services/crud/notes_service.dart';
@@ -71,6 +69,9 @@ class _NewNoteViewState extends State<NewNoteView> {
     super.initState();
   }
 
+  // When user clicks back or when this create new note widget is disposed,
+  // check if the note is empty or not. If empty, delete the note from db.
+  // Otherwise, save it
   @override
   void dispose() {
     _deleteNoteIfEmpty();

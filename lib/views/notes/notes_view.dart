@@ -19,7 +19,6 @@ class _NotesViewState extends State<NotesView> {
   @override
   void initState() {
     _notesService = NotesService(); // create an instance of NotesService
-    _notesService.open(); // open db connection when notes view is accessed
     super.initState();
   }
 

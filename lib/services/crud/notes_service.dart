@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:mynotes/extensions/list/filter.dart';
 import 'package:mynotes/services/crud/crud_exceptions.dart';
 import 'package:path/path.dart' show join;
 import 'package:path_provider/path_provider.dart'
@@ -8,7 +9,7 @@ import 'package:sqflite/sqflite.dart';
 
 class NotesService {
   Database? _db; // from sqflite package
-
+  DBUser? _user;
   Database _getDatabaseOrThrow() {
     // a private convenient function for getting current db
     final db = _db;
@@ -44,13 +45,27 @@ class NotesService {
     _notesStreamController.add(_notes);
   }
 
-  Stream<List<DBNote>> get allNotes => _notesStreamController.stream;
-  Future<DBUser> getOrCreateUser({required String email}) async {
+  Stream<List<DBNote>> get allNotes =>
+      _notesStreamController.stream.filter((note) {
+        final currentUser = _user;
+        if (currentUser != null) {
+          return note.userId == currentUser.id;
+        } else {
+          throw UserShouldBeSetBeforeReadingAllNotes();
+        }
+      });
+
+  Future<DBUser> getOrCreateUser({
+    required String email,
+    bool setAsCurrentUser = true,
+  }) async {
     try {
       final user = await getUser(email: email);
+      if (setAsCurrentUser) _user = user;
       return user;
     } on CouldNotFindUser {
       final createdUser = await createUser(email: email);
+      if (setAsCurrentUser) _user = createdUser;
       return createdUser;
     } catch (err) {
       rethrow;

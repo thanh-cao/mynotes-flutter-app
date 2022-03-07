@@ -122,9 +122,14 @@ class NotesService {
     final db = _getDatabaseOrThrow();
     await getNote(id: note.id); // checking if the note exists in db
 
-    final updatedCount = await db.update(noteTable, {
-      textColumn: text,
-    });
+    final updatedCount = await db.update(
+      noteTable,
+      {
+        textColumn: text,
+      },
+      where: 'id = ?',
+      whereArgs: [note.id],
+    );
 
     if (updatedCount == 0) {
       throw CouldNotUpdateNote();
